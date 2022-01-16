@@ -14,14 +14,14 @@ spec:
       annotations:
         vault.hashicorp.com/agent-inject: "true"
         vault.hashicorp.com/tls-skip-verify: "true"
-        vault.hashicorp.com/agent-inject-secret-sql-role: "database/creds/sql-role"
-        vault.hashicorp.com/agent-inject-template-sql-role: |
+        vault.hashicorp.com/role: "sql-role1"        
+        vault.hashicorp.com/agent-inject-secret-sql-role1: "dev/secrets/db/creds/sql-role1"
+        vault.hashicorp.com/agent-inject-template-sql-role1: |
           {
-          {{- with secret "database/creds/sql-role" -}}
+          {{- with secret "dev/secrets/db/creds/sql-role1" -}}
             "db_connection": "host=postgres.postgress port=5432 user={{ .Data.username }} password={{ .Data.password }} dbname=postgresdb sslmode=disable"
           {{- end }}
           }
-        vault.hashicorp.com/role: "sql-role"
       labels:
         app: dynamic-postgres
     spec:
