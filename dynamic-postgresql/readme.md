@@ -1,8 +1,7 @@
 # Dynamic Secret Creation [PostgreSQL]
-![Alt text](https://assets.openshift.com/hubfs/Integrating%20Hashicorp%20Vault%20in%20OpenShift%204.png "Using Mutation Webhook to inject Sidecar")
+# Using Mutation Webhook to inject Sidecar
+![Alt text](https://assets.openshift.com/hubfs/Integrating%20Hashicorp%20Vault%20in%20OpenShift%204.png)
 Deploy our test database
-
-
 ```
 kubectl create ns postgres
 kubectl -n postgres apply -f ./hashicorp/vault/example-apps/dynamic-postgresql/postgres.yaml
