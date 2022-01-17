@@ -11,8 +11,9 @@ kubectl -n postgres exec -it <podname> bash
 psql --username=postgresadmin postgresdb
 \du
 ```
+Enable Kubernetes Auth method
+```
 vault auth enable kubernetes
-
 vault write auth/kubernetes/config \
 token_reviewer_jwt="$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)" \
 kubernetes_host=https://${KUBERNETES_PORT_443_TCP_ADDR}:443 \
@@ -28,8 +29,6 @@ kubectl -n vault-example exec -it vault-example-0 vault secrets enable database
 ## Configure DB Credential creation
 
 ```
-kubectl -n vault-example exec -it vault-example-0 sh 
-
 vault write database/config/postgresdb \
     plugin_name=postgresql-database-plugin \
     allowed_roles="sql-role" \
@@ -43,7 +42,7 @@ vault write database/config/postgresdb \
         GRANT SELECT ON ALL TABLES IN SCHEMA public TO \"{{name}}\";" \
     default_ttl="1h" \
     max_ttl="24h"
-
+```
 When a user or application requests credentials, Vault will execute the SQL statement defined in the creation_statements parameter. This example, creates a role in the database wizard which allows select access to all tables.
 
 The creation_statements are PostgreSQL standard SQL statements. SQL statements can contain template variables which are dynamically substituted at runtime. If you look at the create SQL statement below, you will see three template variables {{name}}, {{password}} and {{expiration}}:
@@ -55,8 +54,6 @@ vault write --force /database/rotate-root/wizard
 After running this command, you can check that Vault has rotated the credentials by trying to login using psql using the original credentials:
 
 kubectl exec -it $(kubectl get pods --selector "app=postgres" -o jsonpath="{.items[0].metadata.name}") -c postgres -- bash -c 'PGPASSWORD=admin123 psql -U postgresadmin'
-
-```
 
 ## Example Application
 
@@ -80,19 +77,16 @@ Bind our role to a service account for our application
 
 
 ```
-kubectl -n vault-example exec -it vault-example-0 sh
-
 vault write auth/kubernetes/role/sql-role \
    bound_service_account_names=dynamic-postgres \
    bound_service_account_namespaces=vault-example \
    policies=postgres-app-policy \
    ttl=1h
-
 ```
-First, you need to match the name of a Kubernetes Service Account to the name of the role you configured in the previous step. ???
-
+```
 #test 
 vault read database/creds/sql-role
+```
 
 kubectl -n vault-example apply -f .\hashicorp\vault\example-apps\dynamic-postgresql\deployment.yaml
 k apply -f docker-development-youtube-series/hashicorp/vault/example-apps/dynamic-postgresql/deployment.yaml -n vault-example
