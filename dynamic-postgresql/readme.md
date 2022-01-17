@@ -79,7 +79,7 @@ vault write auth/kubernetes/role/sql-role \
 #test 
 vault read database/creds/sql-role
 ```
-
+```
 kubectl -n vault-example apply -f .\hashicorp\vault\example-apps\dynamic-postgresql\deployment.yaml
 k apply -f docker-development-youtube-series/hashicorp/vault/example-apps/dynamic-postgresql/deployment.yaml -n vault-example
 deployment.apps/dynamic-postgres created
@@ -113,3 +113,4 @@ max_ttl                  24h
 renew_statements         []
 revocation_statements    []
 rollback_statements      []
+```
