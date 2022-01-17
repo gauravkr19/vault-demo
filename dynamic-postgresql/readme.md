@@ -11,19 +11,9 @@ kubectl -n postgres exec -it <podname> bash
 psql --username=postgresadmin postgresdb
 \du
 ```
-Enable Kubernetes Auth method
-```
-vault auth enable kubernetes
-vault write auth/kubernetes/config \
-token_reviewer_jwt="$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)" \
-kubernetes_host=https://${KUBERNETES_PORT_443_TCP_ADDR}:443 \
-kubernetes_ca_cert=@/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-```
 Enable the database engine
-
 ```
-kubectl -n vault-example exec -it vault-example-0 vault login
-kubectl -n vault-example exec -it vault-example-0 vault secrets enable database
+vault secrets enable database
 ```
 
 ## Configure DB Credential creation
@@ -60,8 +50,6 @@ kubectl exec -it $(kubectl get pods --selector "app=postgres" -o jsonpath="{.ite
 Create a policy to control access to secrets
 Vault applies policy based on the path of the secret. For example, the path for database secrets is "database/creds/<role>". For the role created earlier, you can access the database secret at database/creds/db-app.
 ```
-kubectl -n vault-example exec -it vault-example-0 sh
-
 cat <<EOF > /home/vault/postgres-app-policy.hcl
 path "database/creds/sql-role" {
   capabilities = ["read"]
@@ -69,13 +57,17 @@ path "database/creds/sql-role" {
 EOF
 
 vault policy write postgres-app-policy /home/vault/postgres-app-policy.hcl
-
+```
+Enable Kubernetes Auth method
+```
+vault auth enable kubernetes
+vault write auth/kubernetes/config \
+token_reviewer_jwt="$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)" \
+kubernetes_host=https://${KUBERNETES_PORT_443_TCP_ADDR}:443 \
+kubernetes_ca_cert=@/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
 ```
 
-
 Bind our role to a service account for our application
-
-
 ```
 vault write auth/kubernetes/role/sql-role \
    bound_service_account_names=dynamic-postgres \
