@@ -38,9 +38,9 @@ When a user or application requests credentials, Vault will execute the SQL stat
 The creation_statements are PostgreSQL standard SQL statements. SQL statements can contain template variables which are dynamically substituted at runtime. If you look at the create SQL statement below, you will see three template variables {{name}}, {{password}} and {{expiration}}:
 
 When Vault rotates root credentials, it connects to the database using its existing root credentials. It then generates a new password for the configured user. Vault saves the password but you cannot retrieve it. This process removes the paper trail associated with the original password. Should you need to access the database then it is always possible to ask Vault to generate credentials. Run the following command to rotate the root credentials:
-
+```
 vault write --force /database/rotate-root/wizard
-
+```
 After running this command, you can check that Vault has rotated the credentials by trying to login using psql using the original credentials:
 
 kubectl exec -it $(kubectl get pods --selector "app=postgres" -o jsonpath="{.items[0].metadata.name}") -c postgres -- bash -c 'PGPASSWORD=admin123 psql -U postgresadmin'
