@@ -1,5 +1,5 @@
 # Dynamic Secret Creation [PostgreSQL]
-
+![Alt text](https://assets.openshift.com/hubfs/Integrating%20Hashicorp%20Vault%20in%20OpenShift%204.png "Using Mutation Webhook to inject Sidecar")
 Deploy our test database
 
 
