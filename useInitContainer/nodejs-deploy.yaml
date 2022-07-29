@@ -1,0 +1,43 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: envconsul-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: envconsul-demo
+  template:
+    metadata:    
+      labels:
+        app: envconsul-demo
+    spec:
+      initContainers:
+      - name: install
+        image: busybox
+        args: 
+        - '/bin/sh'
+        - '-c'
+        - 'wget https://releases.hashicorp.com/envconsul/0.13.0/envconsul_0.13.0_linux_amd64.zip -O /workdir/envconsul_0.13.0_linux_amd64.zip && unzip /workdir/envconsul_0.13.0_linux_amd64.zip -d /workdir'
+        volumeMounts:
+        - name: workdir
+          mountPath: "/workdir"
+      containers:
+        - name: envconsul-demo
+          image: docker.io/gauravkr19/comicbox:latest
+          ports:
+            - containerPort: 3000          
+          args: ['/bin/sh', '-c', '/env-consul/bin/envconsul -config "/env-consul/config/envconsul-config.hcl" npm start']
+          volumeMounts:
+          - mountPath: /env-consul/config
+            name: envconsul-vol
+          - mountPath: /env-consul/bin
+            name: workdir
+      volumes:
+      - name: envconsul-vol
+        configMap:
+          name: env-config
+      - name: workdir
+        emptyDir: {}          
+      serviceAccountName: default

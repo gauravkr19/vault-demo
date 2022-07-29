@@ -1,0 +1,21 @@
+apiVersion: v1
+data:
+  envconsul-config.hcl: |
+    log_level = "warn"
+
+    secret {
+      no_prefix = true
+      path = "ciam/secret"
+    }
+
+    vault {
+      address = "http://vault.default.svc.cluster.local:8200"
+      token = ""
+      k8s_auth_role_name = "nodejs"
+      k8s_service_account_token_path = "/run/secrets/kubernetes.io/serviceaccount/token"
+    }
+kind: ConfigMap
+metadata:
+  name: env-config
+  namespace: default
+
