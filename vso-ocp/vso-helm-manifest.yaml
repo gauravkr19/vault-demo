@@ -1,0 +1,607 @@
+NAME: vault-secrets-operator
+LAST DEPLOYED: Mon Aug  7 06:50:51 2023
+NAMESPACE: vault
+STATUS: pending-install
+REVISION: 1
+HOOKS:
+---
+# Source: vault-secrets-operator/templates/tests/test-runner.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: vault-secrets-operator-test
+  namespace: vault
+  labels:
+    app: vault-secrets-operator
+    chart: vault-secrets-operator-0.1.0
+    heritage: Helm
+    release: vault-secrets-operator
+  annotations:
+    "helm.sh/hook": test-success
+spec:
+  containers:
+    - name: vault-operator-test
+      image: "hashicorp/vault-secrets-operator"
+---
+# Source: vault-secrets-operator/templates/deployment.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: vault-secrets-operator-pre-delete-controller-cleanup
+  namespace: vault
+  labels:
+    helm.sh/chart: vault-secrets-operator-0.1.0
+    app.kubernetes.io/name: vault-secrets-operator
+    app.kubernetes.io/instance: vault-secrets-operator
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    # This is what defines this resource as a hook. Without this line, the
+    # job is considered part of the release.
+    "helm.sh/hook": pre-delete
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  template:
+    metadata:
+      name: vault-secrets-operator-pre-delete-controller-cleanup
+    spec:
+      serviceAccountName: vault-secrets-operator-controller-manager
+      containers:
+      - name: pre-delete-controller-cleanup
+        image: hashicorp/vault-secrets-operator:0.1.0
+        args:
+        - --finalizer-cleanup=true
+        command:
+        - /vault-secrets-operator
+      restartPolicy: Never
+MANIFEST:
+---
+# Source: vault-secrets-operator/templates/deployment.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: vault-secrets-operator-controller-manager
+  namespace: vault
+  labels:
+    helm.sh/chart: vault-secrets-operator-0.1.0
+    app.kubernetes.io/name: vault-secrets-operator
+    app.kubernetes.io/instance: vault-secrets-operator
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: vault-secrets-operator/templates/manager-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vault-secrets-operator-manager-config
+  namespace: vault
+  labels:
+    app.kubernetes.io/component: controller-manager
+    helm.sh/chart: vault-secrets-operator-0.1.0
+    app.kubernetes.io/name: vault-secrets-operator
+    app.kubernetes.io/instance: vault-secrets-operator
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+data:
+  controller_manager_config.yaml: |
+    apiVersion: controller-runtime.sigs.k8s.io/v1beta1
+    health:
+      healthProbeBindAddress: ":8081"
+    kind: ControllerManagerConfig
+    leaderElection:
+      leaderElect: true
+      resourceName: "b0d477c0.hashicorp.com"
+    metrics:
+      bindAddress: "127.0.0.1:8080"
+    webhook:
+      port: 9443
+---
+# Source: vault-secrets-operator/templates/manager-rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: vault-secrets-operator-manager-role
+  labels:
+    app.kubernetes.io/component: controller-manager
+    helm.sh/chart: vault-secrets-operator-0.1.0
+    app.kubernetes.io/name: vault-secrets-operator
+    app.kubernetes.io/instance: vault-secrets-operator
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - create
+  - delete
+  - deletecollection
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - serviceaccounts
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - serviceaccounts/token
+  verbs:
+  - create
+  - get
+  - list
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - daemonsets
+  verbs:
+  - get
+  - list
+  - patch
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - get
+  - list
+  - patch
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - statefulsets
+  verbs:
+  - get
+  - list
+  - patch
+  - watch
+- apiGroups:
+  - secrets.hashicorp.com
+  resources:
+  - vaultauths
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - secrets.hashicorp.com
+  resources:
+  - vaultauths/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - secrets.hashicorp.com
+  resources:
+  - vaultauths/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - secrets.hashicorp.com
+  resources:
+  - vaultconnections
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - secrets.hashicorp.com
+  resources:
+  - vaultconnections/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - secrets.hashicorp.com
+  resources:
+  - vaultconnections/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - secrets.hashicorp.com
+  resources:
+  - vaultdynamicsecrets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - secrets.hashicorp.com
+  resources:
+  - vaultdynamicsecrets/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - secrets.hashicorp.com
+  resources:
+  - vaultdynamicsecrets/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - secrets.hashicorp.com
+  resources:
+  - vaultpkisecrets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - secrets.hashicorp.com
+  resources:
+  - vaultpkisecrets/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - secrets.hashicorp.com
+  resources:
+  - vaultpkisecrets/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - secrets.hashicorp.com
+  resources:
+  - vaultstaticsecrets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - secrets.hashicorp.com
+  resources:
+  - vaultstaticsecrets/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - secrets.hashicorp.com
+  resources:
+  - vaultstaticsecrets/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+---
+# Source: vault-secrets-operator/templates/metrics-reader-rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: vault-secrets-operator-metrics-reader
+  labels:
+    app.kubernetes.io/component: controller-manager
+    helm.sh/chart: vault-secrets-operator-0.1.0
+    app.kubernetes.io/name: vault-secrets-operator
+    app.kubernetes.io/instance: vault-secrets-operator
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+rules:
+- nonResourceURLs:
+  - /metrics
+  verbs:
+  - get
+---
+# Source: vault-secrets-operator/templates/proxy-rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: vault-secrets-operator-proxy-role
+  labels:
+    app.kubernetes.io/component: controller-manager
+    helm.sh/chart: vault-secrets-operator-0.1.0
+    app.kubernetes.io/name: vault-secrets-operator
+    app.kubernetes.io/instance: vault-secrets-operator
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+rules:
+- apiGroups:
+  - authentication.k8s.io
+  resources:
+  - tokenreviews
+  verbs:
+  - create
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - subjectaccessreviews
+  verbs:
+  - create
+---
+# Source: vault-secrets-operator/templates/manager-rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: vault-secrets-operator-manager-rolebinding
+  labels:
+    app.kubernetes.io/component: controller-manager
+    helm.sh/chart: vault-secrets-operator-0.1.0
+    app.kubernetes.io/name: vault-secrets-operator
+    app.kubernetes.io/instance: vault-secrets-operator
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: 'vault-secrets-operator-manager-role'
+subjects:
+- kind: ServiceAccount
+  name: 'vault-secrets-operator-controller-manager'
+  namespace: vault
+---
+# Source: vault-secrets-operator/templates/proxy-rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: vault-secrets-operator-proxy-rolebinding
+  labels:
+    app.kubernetes.io/component: controller-manager
+    helm.sh/chart: vault-secrets-operator-0.1.0
+    app.kubernetes.io/name: vault-secrets-operator
+    app.kubernetes.io/instance: vault-secrets-operator
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: 'vault-secrets-operator-proxy-role'
+subjects:
+- kind: ServiceAccount
+  name: 'vault-secrets-operator-controller-manager'
+  namespace: vault
+---
+# Source: vault-secrets-operator/templates/leader-election-rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: vault-secrets-operator-leader-election-role
+  namespace: vault
+  labels:
+    app.kubernetes.io/component: controller-manager
+    helm.sh/chart: vault-secrets-operator-0.1.0
+    app.kubernetes.io/name: vault-secrets-operator
+    app.kubernetes.io/instance: vault-secrets-operator
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+---
+# Source: vault-secrets-operator/templates/leader-election-rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: vault-secrets-operator-leader-election-rolebinding
+  namespace: vault
+  labels:
+    app.kubernetes.io/component: controller-manager
+    helm.sh/chart: vault-secrets-operator-0.1.0
+    app.kubernetes.io/name: vault-secrets-operator
+    app.kubernetes.io/instance: vault-secrets-operator
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: 'vault-secrets-operator-leader-election-role'
+subjects:
+- kind: ServiceAccount
+  name: 'vault-secrets-operator-controller-manager'
+  namespace: vault
+---
+# Source: vault-secrets-operator/templates/metrics-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: vault-secrets-operator-metrics-service
+  namespace: vault
+  labels:
+    app.kubernetes.io/component: controller-manager
+    control-plane: controller-manager
+    helm.sh/chart: vault-secrets-operator-0.1.0
+    app.kubernetes.io/name: vault-secrets-operator
+    app.kubernetes.io/instance: vault-secrets-operator
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  selector:
+    control-plane: controller-manager
+    app.kubernetes.io/name: vault-secrets-operator
+    app.kubernetes.io/instance: vault-secrets-operator
+  ports:
+  - name: https
+    port: 8443
+    protocol: TCP
+    targetPort: https
+---
+# Source: vault-secrets-operator/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vault-secrets-operator-controller-manager
+  namespace: vault
+  labels:
+    control-plane: controller-manager
+    app.kubernetes.io/component: controller-manager
+    helm.sh/chart: vault-secrets-operator-0.1.0
+    app.kubernetes.io/name: vault-secrets-operator
+    app.kubernetes.io/instance: vault-secrets-operator
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+      app.kubernetes.io/name: vault-secrets-operator
+      app.kubernetes.io/instance: vault-secrets-operator
+  template:
+    metadata:
+      labels:
+        control-plane: controller-manager
+        app.kubernetes.io/name: vault-secrets-operator
+        app.kubernetes.io/instance: vault-secrets-operator
+      annotations:
+        kubectl.kubernetes.io/default-container: manager
+    spec:
+      containers:
+      - name: kube-rbac-proxy
+        args:
+        - --secure-listen-address=0.0.0.0:8443
+        - --upstream=http://127.0.0.1:8080/
+        - --logtostderr=true
+        - --v=0
+        env:
+        - name: KUBERNETES_CLUSTER_DOMAIN
+          value: cluster.local
+        image: gcr.io/kubebuilder/kube-rbac-proxy:v0.11.0
+        ports:
+        - containerPort: 8443
+          name: https
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 500m
+            memory: 128Mi
+          requests:
+            cpu: 5m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+      - name: manager
+        args:
+        - --health-probe-bind-address=:8081
+        - --metrics-bind-address=127.0.0.1:8080
+        - --leader-elect
+        command:
+        - /vault-secrets-operator
+        env:
+        - name: OPERATOR_POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: OPERATOR_POD_UID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.uid
+        - name: KUBERNETES_CLUSTER_DOMAIN
+          value: cluster.local
+        image: hashicorp/vault-secrets-operator:0.1.0
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 500m
+            memory: 128Mi
+          requests:
+            cpu: 10m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+        volumeMounts:
+        - mountPath: /var/run/podinfo
+          name: podinfo
+      securityContext:
+        runAsNonRoot: true
+      serviceAccountName: vault-secrets-operator-controller-manager
+      terminationGracePeriodSeconds: 10
+      volumes:
+      - downwardAPI:
+          items:
+          - fieldRef:
+              fieldPath: metadata.name
+            path: name
+          - fieldRef:
+              fieldPath: metadata.uid
+            path: uid
+        name: podinfo
+
